@@ -374,6 +374,33 @@ export async function researchInParallel(
  * `fork_session` bifurca el historial de una sesión para exploración divergente;
  * el spawn paralelo son dos tool calls `Task` en la misma respuesta.
  *
+ * QUICK REFERENCE — datos de la fuente
+ *
+ *   Nombre en la guía ....... `Task` (poner "Task" en `allowedTools`)
+ *   Nombre actual (v2.1.63+)  `Agent` — emitido en bloques `tool_use`; `Task` sigue
+ *                              apareciendo en la lista de tools de `system:init`
+ *   AgentDefinition req. ..... `description`, `prompt`
+ *   AgentDefinition opc. ..... `tools` (string[]), `model`
+ *   Omitir `tools` ........... el subagente recibe TODAS las tools de subagente (no restringe)
+ *   Listar `tools` ........... el subagente recibe solo esas
+ *   `model` acepta ........... 'fable' | 'opus' | 'sonnet' | 'haiku' | 'inherit' | ID completo;
+ *                              default = modelo principal
+ *   Tres vías de definir ..... programática (opción `agents`), filesystem (`.claude/agents/`),
+ *                              built-in general-purpose
+ *   Choque de nombres ........ la definición programática gana a la de filesystem
+ *   Selección ................ automática por la `description`; o nombrada explícita en el prompt
+ *   Frontera padre→subagente . solo el prompt string de la tool Agent — sin historia de
+ *                              conversación, sin system prompt, sin output de otros subagentes
+ *   Qué se queda dentro ...... tool calls y results intermedios; solo el mensaje final vuelve
+ *   Speed-up paralelo ........ subtareas independientes terminan en el tiempo de la más lenta,
+ *                              no en la suma
+ *   Por qué es seguro ........ cada uno tiene su propia ventana de contexto aislada
+ *   `fork_session` ........... booleano, default false; bifurca a un session ID nuevo en vez de
+ *                              continuar el original
+ *   Qué preserva el fork ..... copia de la historia hasta el punto de bifurcación; el ID y la
+ *                              historia del original no cambian
+ *   Resultado del fork ....... dos sesiones reanudables de forma independiente
+ *
  * ============================================================================
  * FLUJO DE EJECUCIÓN ESPERADO  (trace ilustrativo — no se ejecuta)
  * ============================================================================

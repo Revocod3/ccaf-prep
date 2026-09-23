@@ -281,6 +281,53 @@ export function classifyFindings(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Extra — Dar los tests existentes para que la generación no duplique
+//
+// Why: la generación de tests en CI necesita los tests actuales en contexto, y por
+//      una razón que solo aparece en la review: sin ellos, Claude no tiene forma de
+//      saber qué está ya cubierto, así que propone tests que duplican los de la
+//      suite. Cada duplicado cuesta a un desarrollador el tiempo de leerlo y
+//      rechazarlo.
+// You should see: la misma corrida, con los tests actuales en contexto, identifica
+//      huecos en vez de duplicados.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Un test ya presente en la suite, resumido para el contexto. */
+interface ExistingTest {
+  readonly name: string;
+  readonly covers: string;
+}
+
+/**
+ * ¿El test propuesto duplica cobertura ya presente?
+ *
+ * @param proposed - El test que Claude propone.
+ * @param existing - Los tests que ya existen.
+ * @returns `true` si ya hay cobertura para ese comportamiento.
+ */
+export function duplicatesExistingCoverage(
+  proposed: { readonly covers: string },
+  existing: readonly ExistingTest[],
+): boolean {
+  return existing.some((test) => test.covers === proposed.covers);
+}
+
+/**
+ * El contexto de tests que hay que pasarle a la corrida de CI.
+ *
+ * @param existing - Los tests existentes.
+ * @returns La nota que evita sugerencias duplicadas.
+ */
+export function existingTestsContext(existing: readonly ExistingTest[]): string {
+  const list = existing.map((test) => `- ${test.name} (covers ${test.covers})`).join("\n");
+  return [
+    "Existing tests already in the suite — do NOT propose duplicates of these:",
+    list,
+    "Propose tests only for behaviour not already covered.",
+  ].join("\n");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Extra — Elecciones de API y flags que el examen pregunta
 //
 // Why: el pipeline también decide entre Batch API y tiempo real, y entre varios
@@ -491,6 +538,8 @@ export function bareModeTradeoff(): string {
  *                             NUNCA checks pre-merge
  *   CLAUDE.md en CI ......... se lee igual que en interactivo — la vía para dar
  *                             estándares de testing y review
+ *   Tests existentes ........ pasarlos en contexto para que la generación no proponga
+ *                             escenarios ya cubiertos por la suite
  *   Flags de system prompt .. `--system-prompt[-file]` sustituye; `--append-system-prompt[-file]` añade
  *   Permisos y tools ........ `--permission-mode`, `--allowedTools`, `--disallowedTools`,
  *                             `--tools "Bash,Edit,Read"`, `--add-dir <path>`, `--model`

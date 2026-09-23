@@ -88,7 +88,8 @@ interface ResearchReport {
  * tool call `Task`/`Agent`).
  */
 interface AgentClient {
-  complete(prompt: string, systemPrompt: string): Promise<string>;
+  /** `userPrompt` es el turno del usuario; `system` es el system prompt. */
+  complete(userPrompt: string, system: string): Promise<string>;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

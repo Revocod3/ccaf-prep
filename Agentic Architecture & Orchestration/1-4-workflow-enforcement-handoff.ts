@@ -459,6 +459,24 @@ export function runScenario(session: SessionState): void {
  * Números del examen: instrucción de prompt ≈ 92% de cumplimiento; prerequisite
  * gate = 100%, porque la comprobación no es una decisión del modelo.
  *
+ * QUICK REFERENCE — datos de la fuente
+ *
+ *   Orden de evaluación de permisos ... hooks → deny rules → ask rules → permission mode →
+ *                                      allow rules → callback canUseTool
+ *   Fuerza de una deny rule .......... bloquea incluso en `bypassPermissions`
+ *   Un hook que devuelve allow ....... NO salta los deny/ask posteriores
+ *   canUseTool — cuándo dispara ...... solo si el flujo llega a un prompt; se salta con
+ *                                      acceptEdits, bypassPermissions o una allow rule
+ *   Check que debe correr siempre .... hook `PreToolUse`, no canUseTool
+ *   Fuerza de un deny de hook ........ aplica incluso en `bypassPermissions`
+ *   Para qué se documentan hooks ..... bloquear ops peligrosas, audit logging, transformar
+ *                                      input/output, requerir aprobación humana
+ *   `disallowed_tools` nombre pelado . quita la tool del contexto; Claude no la ve
+ *   `disallowed_tools` con scope ..... la tool sigue visible; solo se deniegan las llamadas
+ *                                      que matchean, en todos los modos
+ *   Regla de decisión ................ finanzas/seguridad/compliance ⇒ enforcement
+ *                                      programático; formato/estilo ⇒ prompt basta
+ *
  * ============================================================================
  * FLUJO DE EJECUCIÓN ESPERADO  (trace ilustrativo — no se ejecuta)
  * ============================================================================

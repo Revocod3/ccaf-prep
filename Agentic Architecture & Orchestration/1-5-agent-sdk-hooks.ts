@@ -463,6 +463,27 @@ export function runScenario(): void {
  * Marco de decisión: **hooks para el 100%, prompts para preferencias.**
  * Prioridad de decisiones: **deny > defer > ask > allow** (cualquier deny bloquea).
  *
+ * QUICK REFERENCE — datos de la fuente
+ *
+ *   Eventos en Python Y TS ... PreToolUse, PostToolUse, PostToolUseFailure, UserPromptSubmit,
+ *                              Stop, SubagentStart, SubagentStop, PreCompact,
+ *                              PermissionRequest, Notification
+ *   Solo TypeScript .......... SessionStart, SessionEnd
+ *   Forma de `hooks` ......... dict[HookEvent, list[HookMatcher]]
+ *   HookMatcher.matcher ...... se prueba contra el target del evento (p. ej. el nombre de la
+ *                              tool); alternaciones (Write|Edit) o regex (^mcp__);
+ *                              omitido = corre para todos los eventos de ese tipo
+ *   permissionDecision ....... allow, deny, ask, defer
+ *   Otros campos de PreToolUse  permissionDecisionReason, updatedInput
+ *   updatedInput + allow ..... auto-aprueba el input modificado
+ *   updatedInput + ask ....... muestra el input modificado al usuario
+ *   updatedInput sin decisión  el input modificado aplica igual y pasa por la evaluación normal
+ *   PostToolUse additionalContext  añade info al resultado (el original queda intacto)
+ *   PostToolUse updatedToolOutput  reemplaza el output antes de que Claude lo vea
+ *   Prioridad de decisión .... deny > defer > ask > allow; cualquier deny bloquea
+ *   "Allow sin cambios" mínimo  {}
+ *   Campos en toda salida ..... systemMessage, continue/continue_
+ *
  * ============================================================================
  * FLUJO DE EJECUCIÓN ESPERADO  (trace ilustrativo — no se ejecuta)
  * ============================================================================

@@ -346,6 +346,61 @@ export function renderSection(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Extra — Separar lo bien establecido de lo disputado en el reporte
+//
+// Why: un finding que tres fuentes independientes acuerdan no es lo mismo que uno
+//      que descansa en un solo reporte, y prosa que presenta ambos en el mismo
+//      registro confiado destruye esa distinción en silencio. El reporte lleva
+//      secciones explícitas y conserva la caracterización de cada fuente y su
+//      contexto metodológico.
+// You should see: una sección de findings bien establecidos y otra de disputados,
+//      cada claim con su atribución y su contexto.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** En qué sección del reporte va un claim. */
+type ClaimStanding = "well_established" | "contested";
+
+/**
+ * Clasifica un claim para la sección del reporte.
+ *
+ * @param findings - Todos los findings.
+ * @param claim - El claim a clasificar.
+ * @param independentSources - El mínimo de fuentes independientes para considerarlo establecido.
+ * @returns La sección donde va.
+ */
+export function claimStanding(
+  findings: readonly ClaimSourceMapping[],
+  claim: string,
+  independentSources = 3,
+): ClaimStanding {
+  return isWellEstablished(findings, claim, independentSources)
+    ? "well_established"
+    : "contested";
+}
+
+/**
+ * Renderiza una sección del reporte conservando caracterización y contexto.
+ *
+ * Conservar la caracterización original de cada fuente y su contexto metodológico
+ * es lo que permite al lector pesar un claim en vez de aceptarlo por el registro
+ * con el que está escrito.
+ *
+ * @param heading - El encabezado de la sección.
+ * @param findings - Los findings que van en ella.
+ * @returns La sección en Markdown.
+ */
+export function renderStandingSection(
+  heading: string,
+  findings: readonly ClaimSourceMapping[],
+): string {
+  const rows = findings.map(
+    (finding) =>
+      `- ${finding.claim} — ${finding.documentName} (${finding.publicationDate}); context: ${finding.relevantExcerpt}`,
+  );
+  return [`## ${heading}`, ...rows].join("\n");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Extra — Las etapas del pipeline y dónde muere la atribución
 //
 // Why: la atribución tiene que sobrevivir CADA paso, y el paso 3 es donde suele
@@ -475,6 +530,9 @@ export function isAttributionLossPoint(stage: PipelineStage): boolean {
  *   `conflict_detected` ...... campo de schema que marca un valor en conflicto, distinto
  *                              de un campo null/ausente
  *   Render apropiado ......... financiero → tablas · noticias → prosa · técnico → listas
+ *   Reporte ................. secciones explícitas de bien establecido vs disputado,
+ *                             conservando la caracterización de cada fuente y su
+ *                             contexto metodológico
  *   Separación de datos ...... contenido y metadata como campos distintos, no prosa
  *                              mezclada, para sobrevivir los hand-offs
  *

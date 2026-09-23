@@ -454,6 +454,96 @@ export function auditSystemPrompt(systemPrompt: string): readonly PromptConflict
   });
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Extra — Cuando la descripción no basta: splitting y renaming
+//
+// Why: una tool con un remitente amplio no se puede describir con precisión,
+//      porque no hace una sola cosa. Y dos nombres que invitan a la confusión
+//      compiten por peticiones que nunca fueron suyas. Las dos son intervenciones
+//      en la INTERFAZ, no en la implementación de debajo.
+// You should see: cada tool nueva mapea a una petición que un usuario haría de
+//      verdad, y el renaming elimina el solapamiento sin tocar nada más.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** El remitente amplio que no admite una descripción precisa. */
+export const GENERIC_DOCUMENT_TOOL = {
+  name: "analyze_document",
+  description: "Runs analysis over a document and returns what it finds",
+} as const;
+
+/**
+ * Las tres tools purpose-specific que lo reemplazan.
+ *
+ * Cada una hace un solo trabajo bajo un contrato definido, y por eso cada una
+ * admite una descripción exacta — que es lo que permite elegir entre ellas por lo
+ * que se pidió.
+ */
+export const SPLIT_DOCUMENT_TOOLS: readonly {
+  readonly name: string;
+  readonly description: string;
+}[] = [
+  {
+    name: "extract_data_points",
+    description: "Extracts structured data fields (dates, amounts, names) from a document",
+  },
+  {
+    name: "summarize_content",
+    description: "Produces a concise summary of a document's key arguments and conclusions",
+  },
+  {
+    name: "verify_claim_against_source",
+    description:
+      "Checks whether a specific claim is supported by the source document, returning supporting/contradicting evidence",
+  },
+];
+
+/**
+ * Renombra una tool para eliminar el solapamiento funcional.
+ *
+ * `analyze_content` compite por peticiones que nunca fueron suyas; con un nombre y
+ * un encuadre específicos de web deja de hacerlo. No cambia nada por debajo.
+ *
+ * @param name - El nombre nuevo.
+ * @param description - La descripción con el encuadre específico.
+ * @returns La tool renombrada.
+ */
+export function renameTool(
+  name: string,
+  description: string,
+): { readonly name: string; readonly description: string } {
+  return { name, description };
+}
+
+/** El renaming del ejercicio: `analyze_content` → `extract_web_results`. */
+export const RENAMED_WEB_TOOL = renameTool(
+  "extract_web_results",
+  "Extracts the results of a web search, returning the matching pages with their URLs",
+);
+
+/** Marcadores de una frontera explícita dentro de una descripción. */
+const BOUNDARY_MARKERS: readonly string[] = [
+  "not for",
+  "instead",
+  "belongs to",
+  "rather than",
+  "do not use",
+];
+
+/**
+ * ¿La descripción declara su frontera contra la tool vecina?
+ *
+ * La frase de frontera es la que hace el trabajo: sin ella, dos descripciones
+ * pueden parecer igual de aplicables a la misma query. Cuando falta, toca dividir
+ * o renombrar — no añadir few-shot ni un routing classifier.
+ *
+ * @param description - La descripción de la tool.
+ * @returns `true` si nombra cuándo la tool vecina es la correcta.
+ */
+export function declaresBoundary(description: string): boolean {
+  const low = description.toLowerCase();
+  return BOUNDARY_MARKERS.some((marker) => low.includes(marker));
+}
+
 /**
  * ============================================================================
  * ✗ ANTI-PATTERN — Los arreglos que el examen rechaza para el misrouting
@@ -537,6 +627,10 @@ export function auditSystemPrompt(systemPrompt: string): readonly PromptConflict
  *                             (`schedule_event`, `get_customer_context`, `search_logs`)
  *   Namespacing .............. por servicio (`asana_search`) y por recurso
  *                             (`asana_projects_search`)
+ *   Tool splitting ........... `analyze_document` → `extract_data_points`,
+ *                             `summarize_content`, `verify_claim_against_source`
+ *   Tool renaming ............ `analyze_content` → `extract_web_results` (encuadre
+ *                             web; sin cambio de implementación)
  *   Naming de parámetros ..... `user_id`, no `user`; el schema previene el error
  *                             (requerir rutas absolutas eliminó el fallo)
  *   Evidencia ................ SOTA en SWE-bench Verified tras refinar

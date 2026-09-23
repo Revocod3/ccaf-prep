@@ -422,6 +422,8 @@ export function partitionForkedOutput(
  *   Precedencia de skills ... enterprise > personal (`~/.claude/skills/`) >
  *                             project (`.claude/skills/`) > bundled
  *   Choque anidado .......... se cualifica como `apps/web:deploy`
+ *   Reglas de permiso ....... `Skill(name)` matchea una skill exacta;
+ *                             `Skill(name *)` es prefijo y cubre cualquier argumento
  *   Prompts MCP ............. `/mcp__servername__promptname`, argumentos separados
  *                             por espacios
  *   Skills vs CLAUDE.md ..... skills cargan al invocar; CLAUDE.md carga cada sesión

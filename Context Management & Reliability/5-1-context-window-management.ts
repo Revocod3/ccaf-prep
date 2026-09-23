@@ -279,6 +279,65 @@ export function aggregateWithKeyFindings(sources: readonly SourceFinding[]): str
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Extra — Optimizar el agente upstream: estructura, no prosa
+//
+// Why: en un pipeline multi-agente, lo que a un agente upstream le parece natural
+//      devolver rara vez es lo que el downstream necesita. Las reasoning chains y
+//      el contenido crudo llegan a un agente de síntesis cuyo presupuesto es finito,
+//      y el razonamiento le es inusable: no puede actuar sobre CÓMO otro agente
+//      llegó a una conclusión, solo sobre la conclusión.
+// You should see: el upstream devuelve campos con nombre (claim, source,
+//      relevanceScore, publicationDate) en vez de prosa y deliberación.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Un finding estructurado que un agente upstream entrega al downstream. */
+interface StructuredFinding {
+  readonly claim: string;
+  readonly source: string;
+  readonly sourceUrl: string;
+  readonly relevanceScore: number;
+  readonly publicationDate: string;
+}
+
+/** La metadata que el downstream necesita para ser preciso, no solo fluido. */
+export const REQUIRED_FINDING_METADATA: readonly (keyof StructuredFinding)[] = [
+  "claim",
+  "source",
+  "sourceUrl",
+  "relevanceScore",
+  "publicationDate",
+];
+
+/**
+ * ¿El finding trae lo que el downstream necesita?
+ *
+ * Faltan fechas, ubicaciones de fuente o contexto metodológico y la síntesis deja
+ * de ser precisa para volverse solo fluida.
+ *
+ * @param finding - El finding a comprobar.
+ * @returns `true` si están todos los campos requeridos.
+ */
+export function isDownstreamReady(finding: Partial<StructuredFinding>): boolean {
+  return REQUIRED_FINDING_METADATA.every((field) => finding[field] !== undefined);
+}
+
+/**
+ * Qué tiene que hacer el downstream según lo que le mande el upstream.
+ *
+ * El ahorro en tokens es el beneficio obvio y NO el mayor: al que le pasas
+ * estructura lee campos; al que le pasas prosa los re-deriva, y cada re-derivación
+ * es una ocasión de equivocarse.
+ *
+ * @param mode - Si el upstream manda prosa o estructura.
+ * @returns Qué le toca hacer al downstream.
+ */
+export function downstreamWork(mode: "prose" | "structured"): string {
+  return mode === "structured"
+    ? "Reads the fields directly — nothing to re-derive."
+    : "Re-derives the claim, the source and the figure from prose — each re-derivation risks getting one wrong.";
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Extra — Economía del contexto: ventana, overflow, caching y compaction
 //
 // Why: el examen pregunta por el mecanismo, no solo por el patrón: qué cuenta
@@ -459,6 +518,12 @@ export const EPHEMERAL_CACHE_TTL_MINUTES = 5;
  *                               riesgo = perder contexto sutil
  *   Compaction más suave ...... tool result clearing
  *   Server-side compaction .... beta, Claude 4.6+
+ *   Upstream optimizado ...... devolver datos estructurados (claim, source,
+ *                              relevanceScore, publicationDate) en vez de prosa y
+ *                              reasoning chains
+ *   Beneficio real del upstream  no es el ahorro de tokens: es que el downstream LEE
+ *                              campos en vez de re-derivarlos — cada re-derivación es
+ *                              una ocasión de equivocarse
  *   Cache ephemeral ........... ~5 minutos desde el último uso
  *
  * ============================================================================

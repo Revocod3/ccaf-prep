@@ -228,7 +228,7 @@ export function handleCustomerLookup(results: readonly CustomerRecord[]): Lookup
     action: "disambiguate",
     message:
       "I found multiple accounts matching that name. Could you provide one of the following " +
-      "to help me find the right account?\n- Email address\n- Phone number\n- Order number",
+      "to help me find the right account?\n- Email address\n- Phone number\n- Order number\n- Postcode",
     matchCount: results.length,
   };
 }
@@ -524,7 +524,7 @@ export function renderHandoff(handoff: EscalationHandoff): string {
  *
  * handleCustomerLookup(AMBIGUOUS_MATCHES)
  *   → { action: "disambiguate", matchCount: 2,
- *       message: "…Could you provide … Email address / Phone number / Order number" }
+ *       message: "…Could you provide … Email address / Phone number / Order number / Postcode" }
  *   ✅ ninguno de los dos records se toca
  *
  * resolveHookDecisions(["allow", "ask", "deny"]) → "deny"
